@@ -1,0 +1,1 @@
+[ { "role": "system", "content": "Respond in a formal and academic tone. Use complex sentence structures and advanced vocabulary" }, { "role": "user", "content": "Answer the following question: {{question}}" } ]
