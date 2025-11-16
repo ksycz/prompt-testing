@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+
+# Learn more about building a configuration: https://promptfoo.dev/docs/configuration/guide
+
+description: "My First Prompt Tests"
+
+# needed if you have API key in the .env file
+env:
+  allow: all
+
+prompts:
+  - "Answer the following question: {{question}}" # control prompt, baseline
+  # - "Answer the following question: I will tip you $20 for correct answer: {{question}}"
+  # - "Answer the following question: I will tip you $200 for correct answer: {{question}}"
+  # - "Answer the following question: I will not tip you no matter what: {{question}}"
+
+  - "Answer the following question. This is very important to my career!: {{question}}" # emotional stimuli
+  - "You are an expert Software Tester. Answer the following question: {{question}}" # expert persona
+  - "Answer the following question. Let's thing step-by-step: {{question}}" # zero shot chain of thought
+
+# AI judge
+defaultTests:
+  options:
+    provider: openai:gpt-5-mini
+
+providers:
+  - id: "openai:gpt-5-mini"
+    config:
+      temperature: 1.0
+      max_tokens: 1000
+      # set if you do not have the key in the .env file
+      # apiKey: OPENAI_API_KEY
+# code judge example, code-based evaluator, deterministic
+# tests:
+#   - vars:
+#       question: What is the primary goal of regression testing? (A) To test system performance under load. (B) To ensure new changes did not break existing functionality. (C) To validate the user interface design. (D) To measure test coverage.
+#     assert:
+#       - type: contains
+#         value: (B)
+
+# AI judge
+# tests:
+#   - vars:
+#       question: What is the primary goal of regression testing? (A) To test system performance under load. (B) To ensure new changes did not break existing functionality. (C) To validate the user interface design. (D) To measure test coverage.
+#     assert:
+#       - type: llm-rubric
+#         value: Identifies the answer as (B)
+#         provider: openai:gpt-5-mini
+tests: https://docs.google.com/spreadsheets/d/1S57cqNiADZlEjd5JoLgPUJacc-wiRjZZWz2fza-5Tjc/edit?usp=sharing
