@@ -3,8 +3,9 @@
 Usage:
     python3 summarize.py results-openai-anthropic.json [results-gemini.json ...]
 
-Groups the results by model and by prompt technique / tone, and prints the
-pass rate, median latency, average completion tokens and total cost.
+Multiple-choice suite: groups by model x prompt technique and model x tone.
+Test-report suite (tests with a `case` var): groups by model x case.
+Prints pass rate, errors, median latency, average output tokens and cost.
 Standard library only.
 """
 
@@ -20,6 +21,8 @@ TECHNIQUES = {"1": "baseline", "2": "emotional", "3": "persona", "4": "chain of 
 def technique_and_tone(label):
     """'prompt3_academic.yaml: [...]' -> ('persona', 'academic')"""
     m = re.match(r"prompt(\d)(?:_(\w+))?\.yaml", label)
+    if not m:
+        return None, None
     return TECHNIQUES[m.group(1)], m.group(2) or "neutral"
 
 
@@ -34,6 +37,7 @@ def load(paths):
                     "model": r["provider"]["id"].split(":")[-1],
                     "technique": technique,
                     "tone": tone,
+                    "case": (r.get("vars") or {}).get("case"),
                     "passed": bool(r.get("success")),
                     "error": bool(r.get("error")) and not r.get("gradingResult"),
                     "latency": r.get("latencyMs") or 0,
@@ -62,5 +66,8 @@ def table(rows, by):
 
 if __name__ == "__main__":
     rows = load(sys.argv[1:])
-    table(rows, "technique")
-    table(rows, "tone")
+    if any(r["technique"] for r in rows):
+        table([r for r in rows if r["technique"]], "technique")
+        table([r for r in rows if r["tone"]], "tone")
+    if any(r["case"] for r in rows):
+        table([r for r in rows if r["case"]], "case")
