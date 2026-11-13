@@ -13,7 +13,7 @@ Popular prompting tips say you should add an emotional stake, give the model an 
 | Dataset | `questions.csv`: 10 multiple-choice questions about software-testing theory, each with one correct answer |
 | Prompt techniques | baseline, emotional stimulus ("This is very important to my career!"), expert persona, zero-shot chain of thought ("Let's think step-by-step") |
 | System-message tones | neutral, academic, informal (4 techniques × 3 tones = 12 prompts, `prompt*.yaml`) |
-| Models under test | OpenAI GPT-5-mini, Google Gemini 2.5 Flash, Anthropic Claude Haiku 5.5: the small, fast tier of each vendor, so they are compared like for like |
+| Models under test | OpenAI GPT-5-mini, Google Gemini 3.8 Flash, Anthropic Claude Haiku 5.5: the small, fast tier of each vendor, so they are compared like for like |
 | Grading | deterministic: every prompt asks the model to end with `Answer: (X)`, and a regex in `questions.csv` checks that final line. No AI judge needed |
 
 ## Configs
@@ -21,7 +21,7 @@ Popular prompting tips say you should add an emotional stake, give the model an 
 | File | Purpose |
 |---|---|
 | `promptfooconfig.yaml` | Main experiment: 12 prompts × 3 models × 10 questions = 360 tests |
-| `promptfooconfig_strict.yaml` | One question with strict output checks: answer format (regex), no hedging, the explanation names the testing concept, and a confidence score. Judged by Gemini 2.5 Flash, so GPT-5-mini doesn't grade itself |
+| `promptfooconfig_strict.yaml` | One question with strict output checks: answer format (regex), no hedging, the explanation names the testing concept, and a confidence score. Judged by Gemini 3.8 Flash, so GPT-5-mini doesn't grade itself |
 
 ## How to run
 

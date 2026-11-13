@@ -13,7 +13,7 @@ prompts:
 # so the model does not grade its own answers (self-preference bias)
 defaultTests:
   options:
-    provider: google:gemini-2.5-flash
+    provider: google:gemini-3.8-flash
 
 tests:
   - vars:
