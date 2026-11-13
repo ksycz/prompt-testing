@@ -46,7 +46,7 @@ Two GitHub Actions workflows, split by cost:
 
 | Workflow | When | What it does | Cost |
 |---|---|---|---|
-| `selftest.yml` | every PR and push to `main` | validates all three configs, runs suite 2 against `fake-good.js` and `fake-bad.js`, then `report/check_selftest.py` checks that every test passed with the good fake, every test failed with the bad fake, and the latency check ran on every result | free: no API keys, no model calls, about 1 minute |
+| `selftest.yml` | every PR and push to `main`, except changes to only Markdown or `docs/` | validates all three configs, runs suite 2 against `fake-good.js` and `fake-bad.js`, then `report/check_selftest.py` checks that every test passed with the good fake, every test failed with the bad fake, and the latency check ran on every result | free: no API keys, no model calls, about 1 minute |
 | `eval-real.yml` | manually only (Actions → "Eval with real models" → Run workflow) | runs a suite against real models; you choose the suite, the providers and `--repeat`. The `summarize.py` tables appear on the run's summary page, and `results.json` is uploaded as an artifact | a few cents per run; needs repository secrets `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` (`GOOGLE_API_KEY` for Gemini) |
 
 Why real models never run on every PR:
