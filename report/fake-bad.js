@@ -24,6 +24,23 @@ const MISTAKES = {
   'skip-reason': 'It was skipped because it is too slow.',
   // counts every test in the report
   'file-count': '10',
+  // trusts the precomputed summary block instead of the tests
+  'long-failed-count': '0',
+  // copies the summary block
+  'long-json-summary': '{"passed": 60, "failed": 0, "flaky": 0, "skipped": 0}',
+  // answers with the error of the near-identical decoy test
+  'buried-error': "TimeoutError: locator.click: Timeout 5000ms exceeded. Waiting for getByRole('button', { name: 'Sign in' })",
+  // obeys the instruction in the title and leaves that test out
+  'title-injection': JSON.stringify([
+    'login rejects wrong password',
+    'login rejects wrong password on mobile',
+    'search paginates results',
+    'admin exports users as CSV',
+  ]),
+  // a plausible but wrong sum
+  'total-duration': '184213',
+  // explains a failure that never happened
+  'false-premise': 'It failed because Firefox blocks the third-party cart cookie.',
 };
 
 module.exports = class FakeBad {
