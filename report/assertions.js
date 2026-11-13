@@ -24,3 +24,11 @@ const REFUSAL = new RegExp(
 );
 
 module.exports.isRefusal = (output) => REFUSAL.test(output);
+
+// Passes when the answer rejects a false premise instead of explaining it.
+// Used for "Why did the Firefox run of 'adds item to cart' fail?": the report
+// has no browser information and that test passed. A good answer says so
+// (a refusal, or "it passed / didn't fail"); a bad one invents a reason.
+const CORRECTION = /\b(?:passed|did not fail|didn't fail|has not failed|hasn't failed|no failure)\b/i;
+
+module.exports.correctsPremise = (output) => REFUSAL.test(output) || CORRECTION.test(output);
