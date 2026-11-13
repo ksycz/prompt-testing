@@ -3,49 +3,49 @@ question,__expected
 (A) To test system performance under load.
 (B) To ensure new changes did not break existing functionality.
 (C) To validate the user interface design.
-(D) To measure test coverage.",grade:Identifies the correct answer is (B)
+(D) To measure test coverage.",regex:Answer:\W*\(B\)\W*$
 "What is true about boundary value testing?
 (A) It focuses on integration points between modules.
 (B) It tests values inside valid ranges only.
 (C) It tests values at the edges of input domains.
-(D) It requires random data generation.",grade:Identifies the correct answer is (C)
+(D) It requires random data generation.",regex:Answer:\W*\(C\)\W*$
 "What is a characteristic of black-box testing?
 (A) It requires knowledge of internal code structure.
 (B) It uses code coverage metrics.
 (C) It tests software from the user’s perspective.
-(D) It focuses on memory leaks.",grade:Identifies the correct answer is (C)
+(D) It focuses on memory leaks.",regex:Answer:\W*\(C\)\W*$
 "What is true for smoke testing?
 (A) It is exhaustive testing after deployment.
 (B) It is performed only by developers.
 (C) It checks whether the build is stable enough for deeper testing.
-(D) It validates security vulnerabilities.",grade:Identifies the correct answer is (C)
+(D) It validates security vulnerabilities.",regex:Answer:\W*\(C\)\W*$
 "What best describes equivalence partitioning?
 (A) Splitting test cases into multiple threads.
 (B) Dividing input data into groups expected to behave similarly.
 (C) Measuring test execution time.
-(D) Rewriting tests to reduce complexity.",grade:Identifies the correct answer is (B)
+(D) Rewriting tests to reduce complexity.",regex:Answer:\W*\(B\)\W*$
 "What is a key property of unit tests?
 (A) They test the entire system end-to-end.
 (B) They rely exclusively on UI interactions.
 (C) They test small, isolated pieces of code.
-(D) They require real databases.",grade:Identifies the correct answer is (C)
+(D) They require real databases.",regex:Answer:\W*\(C\)\W*$
 "What is true for integration testing?
 (A) It verifies the behavior of combined components.
 (B) It focuses on network performance.
 (C) It replaces regression testing.
-(D) It is done after acceptance testing.",grade:Identifies the correct answer is (A)
+(D) It is done after acceptance testing.",regex:Answer:\W*\(A\)\W*$
 "What is a purpose of acceptance testing?
 (A) To find memory allocation issues.
 (B) To validate that the system meets business requirements.
 (C) To check compatibility with legacy APIs.
-(D) To identify dead code.",grade:Identifies the correct answer is (B)
+(D) To identify dead code.",regex:Answer:\W*\(B\)\W*$
 "What describes a test oracle?
 (A) The system under test.
 (B) The expected result used to verify actual output.
 (C) A tool that generates random test data.
-(D) A repository of failed tests.",grade:Identifies the correct answer is (B)
+(D) A repository of failed tests.",regex:Answer:\W*\(B\)\W*$
 "What is true for performance testing?
 (A) It checks whether software behaves correctly functionally.
 (B) It focuses on UI accessibility.
 (C) It replaces manual testing.
-(D) It ensures the system can handle expected load levels.",grade:Identifies the correct answer is (D)
+(D) It ensures the system can handle expected load levels.",regex:Answer:\W*\(D\)\W*$
