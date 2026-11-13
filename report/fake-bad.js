@@ -22,8 +22,9 @@ const MISTAKES = {
   longest: 'uploads avatar',
   // makes up a reason
   'skip-reason': 'It was skipped because it is too slow.',
-  // counts every test in the report
-  'file-count': '10',
+  // the right answer, but too slow: only the latency limit in defaultTest
+  // can catch this one (see SLOW_CASES below)
+  'file-count': '3',
   // trusts the precomputed summary block instead of the tests
   'long-failed-count': '0',
   // copies the summary block
@@ -43,12 +44,21 @@ const MISTAKES = {
   'false-premise': 'It failed because Firefox blocks the third-party cart cookie.',
 };
 
+// Cases where the mistake is being slow, not being wrong. This checks that
+// the latency limit actually runs: a typo in the config key once switched it
+// off silently, and a self-test with only instant fakes could not notice.
+const SLOW_CASES = new Set(['file-count']);
+const SLOW_MS = 21000; // just over the 20 s limit
+
 module.exports = class FakeBad {
   id() {
     return 'fake-bad';
   }
 
   async callApi(prompt, context) {
+    if (SLOW_CASES.has(context.vars.case)) {
+      await new Promise((resolve) => setTimeout(resolve, SLOW_MS));
+    }
     return { output: MISTAKES[context.vars.case] ?? 'unknown case' };
   }
 };
