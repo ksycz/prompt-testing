@@ -4,7 +4,8 @@ Usage:
     python3 summarize.py results-openai-anthropic.json [results-gemini.json ...]
 
 Multiple-choice suite: groups by model x prompt technique and model x tone.
-Test-report suite (tests with a `case` var): groups by model x case.
+Test-report suite (tests with a `case` var): groups by model x prompt variant,
+and by model x case x variant.
 Prints pass rate, errors, median latency, average output tokens and cost.
 Standard library only.
 """
@@ -26,6 +27,13 @@ def technique_and_tone(label):
     return TECHNIQUES[m.group(1)], m.group(2) or "neutral"
 
 
+def variant(label):
+    """Short prompt-variant name. Runs from before the prompts had labels
+    show the file path plus the whole prompt text, e.g. 'report/prompt.json: [...]'."""
+    name = label.split(":")[0].strip()
+    return {"report/prompt.json": "guarded"}.get(name, name)
+
+
 def load(paths):
     rows = []
     for path in paths:
@@ -38,6 +46,7 @@ def load(paths):
                     "technique": technique,
                     "tone": tone,
                     "case": (r.get("vars") or {}).get("case"),
+                    "variant": variant(r["prompt"].get("label", "")),
                     "passed": bool(r.get("success")),
                     "error": bool(r.get("error")) and not r.get("gradingResult"),
                     "latency": r.get("latencyMs") or 0,
@@ -51,7 +60,7 @@ def table(rows, by):
     groups = defaultdict(list)
     for r in rows:
         groups[(r["model"], r[by])].append(r)
-    print(f"| Model | {by.capitalize()} | Passed | Errors | Median latency | Avg output tokens | Cost |")
+    print(f"| Model | {by[0].upper() + by[1:]} | Passed | Errors | Median latency | Avg output tokens | Cost |")
     print("|---|---|---|---|---|---|---|")
     for (model, value), g in sorted(groups.items()):
         passed = sum(r["passed"] for r in g)
@@ -70,4 +79,8 @@ if __name__ == "__main__":
         table([r for r in rows if r["technique"]], "technique")
         table([r for r in rows if r["tone"]], "tone")
     if any(r["case"] for r in rows):
-        table([r for r in rows if r["case"]], "case")
+        report_rows = [r for r in rows if r["case"]]
+        table(report_rows, "variant")
+        for r in report_rows:
+            r["case / variant"] = f'{r["case"]} / {r["variant"]}'
+        table(report_rows, "case / variant")
