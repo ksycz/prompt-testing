@@ -1,5 +1,7 @@
 # prompt-testing
 
+[![Eval self-test](https://github.com/ksycz/prompt-testing/actions/workflows/selftest.yml/badge.svg)](https://github.com/ksycz/prompt-testing/actions/workflows/selftest.yml)
+
 LLM evals with [promptfoo](https://promptfoo.dev). Two suites:
 
 1. **Prompt techniques** (`promptfooconfig.yaml`): does the way a question is worded change how well a model answers it?
@@ -165,6 +167,26 @@ Suite 2 with the harder cases, 3 samples each, without Gemini (16 cases × 2 pro
 npx promptfoo@latest eval -c promptfooconfig_report.yaml --no-cache --no-table --filter-providers 'openai|anthropic' --repeat 3
 python3 summarize.py results-report.json
 ```
+
+## CI
+
+Two GitHub Actions workflows, split by cost:
+
+| Workflow | When | What it does | Cost |
+|---|---|---|---|
+| `selftest.yml` | every PR and push to `main` | validates all three configs, runs suite 2 against `fake-good.js` and `fake-bad.js`, then `report/check_selftest.py` checks that every test passed with the good fake, every test failed with the bad fake, and the latency check ran on every result | free: no API keys, no model calls, about 1 minute |
+| `eval-real.yml` | manually only (Actions → "Eval with real models" → Run workflow) | runs a suite against real models; you choose the suite, the providers and `--repeat`. The `summarize.py` tables appear on the run's summary page, and `results.json` is uploaded as an artifact | a few cents per run; needs repository secrets `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` (`GOOGLE_API_KEY` for Gemini) |
+
+Why real models never run on every PR:
+- **Cost:** every push would spend money.
+- **Flakiness from outside:** a vendor outage (the 503s in "Errors are not failures") would block unrelated changes.
+- **Noise:** with one sample at temperature 1.0, a single failure isn't a regression.
+
+What *should* gate a PR is that the eval itself is correct, and that's exactly what the self-test checks.
+
+Both workflows pin promptfoo (`0.125.1`), so a new promptfoo release changes the results only when someone bumps the version on purpose. The `defaultTest` typo is a reminder that config behaviour can shift silently.
+
+In the real-model workflow, failed tests (promptfoo exit code 100) don't fail the job: they are the result, reported in the summary. Any other exit code (bad config, missing key) does fail it.
 
 ## Troubleshooting
 
@@ -436,4 +458,4 @@ Lessons:
 - **One sample per test.** At temperature 1.0 a single run is noise. Run with `--repeat` and compare pass rates.
 - **Suite 2 is still too easy on content**: 16 cases, 192/192 correct even without guardrails. What separated the models was latency, not accuracy. Next ideas: much longer reports (thousands of tests), several conflicting sources, or multi-turn conversations where the injection arrives later.
 - **No cost assertion.** promptfoo can't price every model (Claude Haiku 5.5 in 0.125.1) and the `cost` assert errors out then. Cost is tracked in `summarize.py` instead.
-- **CI.** Run the fake-model self-test on every change (free, no API keys), and the real models on a schedule.
+- **CI covers suite 2 only.** Suite 1 is only validated, not self-tested; a fake model that always answers `(B)` should pass exactly the `(B)` questions, which would be a cheap addition.

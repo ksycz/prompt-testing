@@ -141,3 +141,5 @@ vite.config.ts.timestamp-*
 # promptfoo eval outputs (results.json is written by promptfooconfig.yaml)
 results*.json
 reportik*.json
+good.json
+bad.json

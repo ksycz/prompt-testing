@@ -1,0 +1,64 @@
+# Real models: manual only. Costs money and depends on vendor APIs being up
+# (see the "Errors are not failures" finding), so it never runs on every PR.
+# Needs repository secrets OPENAI_API_KEY and ANTHROPIC_API_KEY
+# (and GOOGLE_API_KEY to include Gemini).
+name: Eval with real models
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: Which suite
+        type: choice
+        options: [promptfooconfig_report.yaml, promptfooconfig.yaml]
+        default: promptfooconfig_report.yaml
+      providers:
+        description: Regex of providers to run
+        default: "openai|anthropic"
+      repeat:
+        description: Samples per test
+        default: "1"
+
+env:
+  PROMPTFOO_VERSION: 0.125.1
+  PROMPTFOO_DISABLE_TELEMETRY: 1
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run eval
+        id: eval
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        # Failed tests (exit 100) are a result, not a broken job: the summary
+        # below reports them. Any other exit code is a real error.
+        run: >
+          npx --yes promptfoo@$PROMPTFOO_VERSION eval -c "${{ inputs.config }}"
+          --filter-providers "${{ inputs.providers }}" --repeat "${{ inputs.repeat }}"
+          --no-cache --no-table -j 2 -o results.json
+          || [ $? -eq 100 ]
+
+      - name: Write summary
+        if: always()
+        run: |
+          if [ -f results.json ]; then
+            python3 summarize.py results.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: results.json
+          if-no-files-found: ignore
