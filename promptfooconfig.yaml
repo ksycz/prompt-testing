@@ -42,7 +42,7 @@ providers:
     # apiKey: GEMINI_API_KEY
 - id: "anthropic:messages:claude-haiku-5-5"
   config:
-    temperature: 1.0
+    # no temperature: newer Claude models ignore sampling params (promptfoo warns)
     max_tokens: 1000
 # set if you do not have the key in the .env file
 # apiKey: ANTHROPIC_API_KEY

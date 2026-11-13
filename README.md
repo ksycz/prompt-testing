@@ -22,7 +22,6 @@ Popular prompting tips say you should add an emotional stake, give the model an 
 |---|---|
 | `promptfooconfig.yaml` | Main experiment: 12 prompts × 3 models × 10 questions = 360 tests |
 | `promptfooconfig_strict.yaml` | One question with strict output checks: answer format (regex), no hedging, the explanation names the testing concept, and a confidence score. Judged by Gemini 2.5 Flash, so GPT-5-mini doesn't grade itself |
-| `promptfooconfig_conf.yaml` | Minimal config used to debug the confidence check on its own |
 
 ## How to run
 
