@@ -4,9 +4,13 @@
 name: Eval self-test
 
 on:
+  # Skip runs when only documentation changes: Markdown can't break an eval.
+  # A PR that touches docs AND anything else still runs.
   pull_request:
+    paths-ignore: ['**.md', 'docs/**']
   push:
     branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
   workflow_dispatch:
 
 env:
