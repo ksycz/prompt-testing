@@ -1,1 +1,1 @@
-[ { "role": "system", "content": "You are a helpful assistant" }, { "role": "user", "content": "Answer the following question. Let's thing step-by-step: {{question}}" } ]
+[ { "role": "system", "content": "You are a helpful assistant" }, { "role": "user", "content": "Answer the following question. Let's think step-by-step: {{question}}" } ]
