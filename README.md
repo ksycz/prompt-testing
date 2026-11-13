@@ -21,6 +21,7 @@ Popular prompting tips say you should add an emotional stake, give the model an 
 | File | Purpose |
 |---|---|
 | `promptfooconfig.yaml` | Main experiment: 12 prompts × 3 models × 10 questions = 360 tests |
+| `summarize.py` | Turns a results file into the Markdown tables in the Results section |
 | `promptfooconfig_strict.yaml` | One question with strict output checks: answer format (regex), no hedging, the explanation names the testing concept, and a confidence score. Judged by Gemini 3.8 Flash, so GPT-5-mini doesn't grade itself |
 
 ## How to run
@@ -56,6 +57,39 @@ jq -r '[.results.results[] | select(.error) | .error] | unique[] | .[0:500]' res
 | `401` / `403` | Missing or wrong API key | Check `.env` |
 | Warning "Using unknown Anthropic model" | Your promptfoo version doesn't list the model yet | Harmless if the requests go through |
 
+
+## Results
+
+First full run, 13 Nov 2026: 12 prompts × 10 questions × 2 models = 240 tests, one sample each. Gemini is not included yet, because its API was overloaded that day (see the finding about errors below).
+
+| Model | Technique | Passed | Errors | Median latency | Avg output tokens | Cost |
+|---|---|---|---|---|---|---|
+| claude-haiku-5-5 | baseline | 30/30 | 0 | 1.6 s | 198 | n/a |
+| claude-haiku-5-5 | chain of thought | 30/30 | 0 | 2.1 s | 349 | n/a |
+| claude-haiku-5-5 | emotional | 30/30 | 0 | 1.9 s | 231 | n/a |
+| claude-haiku-5-5 | persona | 30/30 | 0 | 1.7 s | 233 | n/a |
+| gpt-5-mini | baseline | 30/30 | 0 | 3.6 s | 257 | $0.0162 |
+| gpt-5-mini | chain of thought | 30/30 | 0 | 5.0 s | 402 | $0.0249 |
+| gpt-5-mini | emotional | 30/30 | 0 | 3.7 s | 253 | $0.0160 |
+| gpt-5-mini | persona | 30/30 | 0 | 3.7 s | 265 | $0.0167 |
+
+| Model | Tone | Passed | Errors | Median latency | Avg output tokens | Cost |
+|---|---|---|---|---|---|---|
+| claude-haiku-5-5 | academic | 40/40 | 0 | 2.1 s | 347 | n/a |
+| claude-haiku-5-5 | informal | 40/40 | 0 | 1.8 s | 241 | n/a |
+| claude-haiku-5-5 | neutral | 40/40 | 0 | 1.3 s | 170 | n/a |
+| gpt-5-mini | academic | 40/40 | 0 | 4.2 s | 332 | $0.0276 |
+| gpt-5-mini | informal | 40/40 | 0 | 3.9 s | 333 | $0.0278 |
+| gpt-5-mini | neutral | 40/40 | 0 | 3.3 s | 218 | $0.0184 |
+
+Generate these tables from your own run with `python3 summarize.py results-*.json`. Cost shows `n/a` for Claude Haiku 5.5 because this promptfoo version has no price list for it.
+
+**In short:** every prompt got every question right, on both models. The prompt didn't change *correctness*, but it changed *cost and speed*:
+
+- **Chain of thought** costs about +55% output tokens and +35% latency on GPT-5-mini (+75% tokens on Haiku), for zero accuracy gain on these questions.
+- **Tone** is not free either. The academic tone roughly doubles Haiku's output (170 → 347 tokens), and on GPT-5-mini both academic and informal cost about 50% more than neutral.
+- **Emotional stimulus and expert persona** behave like the baseline: no gain and almost no cost.
+- **Haiku answered about twice as fast** as GPT-5-mini (median 1.3–2.1 s vs 3.3–5.0 s). About two thirds of GPT-5-mini's output tokens are hidden reasoning.
 
 ## Findings so far
 
@@ -93,8 +127,16 @@ In a CI pipeline this would need:
 - optionally a fallback model, so one vendor's outage doesn't block the whole run
 - model IDs treated as dependencies: check them on a schedule, because vendors retire models
 
+### 100% everywhere: the dataset is too easy, so the eval measures cost, not quality
+
+All 240 tests passed. That doesn't mean the prompt techniques don't matter. It means **this dataset can't show it**: textbook testing questions are too easy for current models (a ceiling effect). An eval set that never fails can't catch a regression either.
+
+What the run *did* show is the price of each technique. If accuracy is equal, the cheapest and fastest prompt wins, and in production that's the neutral baseline, not chain of thought. Latency and token cost are real metrics to assert on, next to correctness.
+
+Next: harder questions or a domain dataset where models actually make mistakes, and `--repeat` to get pass rates and spread instead of one sample.
+
 ## Known limitations / next steps
 
-- **The questions are too easy.** Textbook testing questions are likely to score near 100% for every model and prompt (a ceiling effect), so the experiment can't show differences.
+- **The questions are too easy.** Confirmed by the first run: 240/240 passed. A harder or domain-specific dataset is needed.
 - **One sample per test.** At temperature 1.0 a single run is noise. Run with `--repeat` and compare pass rates.
 - **Coverage.** Add hallucination, prompt-injection, output-format (JSON), latency and cost checks, and run the suite in CI.
