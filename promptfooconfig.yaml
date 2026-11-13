@@ -8,19 +8,24 @@ description: "My First Prompt Tests"
 env:
   allow: all
 
+# 4 techniques x 3 tones, generated in prompts.js (labels show in the results)
 prompts:
-  - prompt1.yaml # control prompt, baseline
-  - prompt1_academic.yaml 
-  - prompt1_informal.yaml
-  - prompt2.yaml # emotional stimuli
-  - prompt2_academic.yaml 
-  - prompt2_informal.yaml
-  - prompt3.yaml # expert persona
-  - prompt3_academic.yaml 
-  - prompt3_informal.yaml
-  - prompt4.yaml # zero shot chain of thought
-  - prompt4_academic.yaml 
-  - prompt4_informal.yaml
+  # control prompt
+  - file://prompts.js:baseline_neutral
+  - file://prompts.js:baseline_academic
+  - file://prompts.js:baseline_informal
+  # emotional stimulus
+  - file://prompts.js:emotional_neutral
+  - file://prompts.js:emotional_academic
+  - file://prompts.js:emotional_informal
+  # expert persona
+  - file://prompts.js:persona_neutral
+  - file://prompts.js:persona_academic
+  - file://prompts.js:persona_informal
+  # zero-shot chain of thought
+  - file://prompts.js:cot_neutral
+  - file://prompts.js:cot_academic
+  - file://prompts.js:cot_informal
 
 # Grading is deterministic: each row in questions.csv has a regex assert
 # on the final "Answer: (X)" line, so no AI judge is needed here.

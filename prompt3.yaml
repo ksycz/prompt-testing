@@ -1,1 +1,0 @@
-[{"role": "system", "content": "You are a helpful assistant"}, {"role": "user", "content": "You are an expert Software Tester. Answer the following question: {{question}}\n\nEnd your reply with a final line in the form \"Answer: (X)\", where X is the letter of your choice."}]
