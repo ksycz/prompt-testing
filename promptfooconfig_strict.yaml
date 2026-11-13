@@ -1,0 +1,100 @@
+description: "My Strict Prompt Tests"
+
+env:
+  allow: all
+
+prompts:
+  - "Answer the following question: {{question}}"
+  - "Answer the following question. This is very important to my career!: {{question}}" # emotional stimuli
+  - "You are an expert Software Tester. Answer the following question: {{question}}" # expert persona
+  - "Answer the following question. Let's think step-by-step: {{question}}" # zero shot chain of thought
+
+defaultTests:
+  options:
+    provider: openai:gpt-5-mini
+
+tests:
+  - vars:
+      question: What is the primary goal of regression testing? (A) To test system performance under load. (B) To ensure new changes did not break existing functionality. (C) To validate the user interface design. (D) To measure test coverage.
+    assert:
+      - type: llm-rubric
+        value: Identifies the answer as (B)
+        provider: openai:gpt-5-mini
+      # Must start with exactly one choice like "(A)".."(D)"
+      - type: regex
+        value: '^\([A-D]\)\s*(\n|$)'
+
+      # No hedging / no multiple answers
+      - type: llm-rubric
+        value: |
+          Ensure the assistant returns exactly one answer choice in parentheses on the first line, e.g. "(A)".
+          FAIL if the assistant lists multiple answers such as "(A) and (C)" or uses hedging language like "maybe", "possibly", or "could be".
+          Return PASS or FAIL and a short explanation.
+
+      # Meaningful explanation referencing the core testing concept
+      - type: llm-rubric
+        value: |
+          Identify the main software testing concept in the question (e.g. regression testing, boundary values, equivalence classes).
+          Check that the justification on the second line (one sentence, ~5–30 words) explicitly refers to that concept or an accurate synonym.
+          PASS only if the justification is relevant and logically supports the chosen option.
+
+      # # Justification length constraint
+      # - type: llm-rubric
+      #   value: |
+      #     Verify that the justification contains between 5 and 40 words.
+      #     PASS only if the explanation stays in this range and still makes conceptual sense.
+
+      # # Anti-hallucination guard
+      # - type: llm-rubric
+      #   value: |
+      #     Anti-hallucination check:
+      #     The assistant may include a simple generic tag like "source: common-knowledge".
+      #     FAIL if the assistant invents a detailed or fictitious citation, book, author, year, or research reference.
+      #     PASS only if no hallucinated sources are present.
+
+      # Confidence scoring
+      - type: llm-rubric
+        value: |
+          Confidence check:
+          Require the assistant to output:
+          Line 1: "(X)"
+          Line 2: "Confidence: N/10" followed by a brief reason.
+          PASS only if N is a number from 0 to 10 and N >= 7.
+          FAIL if the confidence is missing, invalid, or below threshold.
+
+      # # Two-part question format (accepted if present)
+      # - type: regex
+      #   value: '^\([A-D]\)\nExplanation: .{10,200}$'
+      # - type: llm-rubric
+      #   value: |
+      #     Two-part format:
+      #     First line must be an answer in parentheses.
+      #     Second line must begin with "Explanation:" and contain a 10–40 word coherent explanation that addresses the core concept.
+      #     PASS only if both format and explanation requirements are met.
+
+      # # Bias detection — emotional vs neutral prompt consistency
+      # - type: llm-rubric
+      #   value: |
+      #     Bias detection:
+      #     If the same question appears with different prompt wording (e.g. emotional vs baseline),
+      #     PASS only if the letter choice remains the same.
+      #     FAIL if the emotional prompt leads to a different answer.
+      #     Provide one sentence explaining the inconsistency if it appears.
+
+      # # Multi-layer validation: format + contains (optional) + rubric
+      # - type: regex
+      #   value: '^\([A-D]\)'
+      # - type: contains
+      #   value: "{{__expected}}"
+      # - type: llm-rubric
+      #   value: |
+      #     Multi-layer validation:
+      #     1) Ensure the answer begins with a correct choice "(A)-(D)".
+      #     2) Ensure the justification logically supports the chosen answer.
+      #     3) PASS only if both structure and reasoning are valid (approx. 5–30 words).
+
+providers:
+  - id: "openai:gpt-5-mini"
+    config:
+      temperature: 0.0
+      max_tokens: 1000
