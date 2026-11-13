@@ -1,0 +1,47 @@
+# Free check on every PR and push to main: no API keys, no model calls.
+# Validates all configs and runs suite 2 against the two fake models,
+# so a broken or switched-off check fails the build.
+name: Eval self-test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROMPTFOO_VERSION: 0.125.1   # pinned: a new promptfoo release should be a deliberate change
+  PROMPTFOO_DISABLE_TELEMETRY: 1
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate configs
+        run: |
+          for config in promptfooconfig.yaml promptfooconfig_strict.yaml promptfooconfig_report.yaml; do
+            npx --yes promptfoo@$PROMPTFOO_VERSION validate -c "$config"
+          done
+
+      - name: Suite 2 with the always-right fake (every test must pass)
+        run: >
+          npx --yes promptfoo@$PROMPTFOO_VERSION eval -c promptfooconfig_report.yaml
+          --providers file://report/fake-good.js --no-cache --no-write --no-table -o good.json
+
+      - name: Suite 2 with the always-wrong fake (every test must fail)
+        # promptfoo exits 100 when tests fail, which is the expected outcome here;
+        # check_selftest.py decides whether the run is OK
+        run: >
+          npx --yes promptfoo@$PROMPTFOO_VERSION eval -c promptfooconfig_report.yaml
+          --providers file://report/fake-bad.js --no-cache --no-write --no-table -o bad.json
+          || [ $? -eq 100 ]
+
+      - name: Check the self-test results
+        run: python3 report/check_selftest.py good.json bad.json
