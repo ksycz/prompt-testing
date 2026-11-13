@@ -32,6 +32,31 @@ npx promptfoo@latest eval -c promptfooconfig_strict.yaml --no-cache   # strict c
 npx promptfoo@latest view                                             # open results in the browser
 ```
 
+Useful flags:
+
+```bash
+--filter-first-n 1   # smoke test: only the first question (12 prompts × 3 models = 36 calls)
+--no-table           # summary only; the terminal table is unreadable with many columns
+-j 1                 # one request at a time, gentler on a busy API
+```
+
+## Troubleshooting
+
+promptfoo counts **failed** (the model answered, and the assertion said no) separately from **errors** (no usable answer came back). An error says nothing about the model's quality. Find the error text with:
+
+```bash
+jq -r '[.results.results[] | select(.error) | .error] | unique[] | .[0:500]' results.json
+```
+
+| Error | What it means | What to do |
+|---|---|---|
+| `404 NOT_FOUND` "model ... is no longer available" | The vendor retired the model ID | Update the ID in the config. The error usually names the replacement |
+| `503 UNAVAILABLE` "high demand" | The vendor's servers are overloaded; temporary | Wait and re-run, ideally with `-j 1`. No config change |
+| `429` / `RESOURCE_EXHAUSTED` | Rate limit or quota of your API key | Lower concurrency (`-j 1`) or check billing |
+| `401` / `403` | Missing or wrong API key | Check `.env` |
+| Warning "Using unknown Anthropic model" | Your promptfoo version doesn't list the model yet | Harmless if the requests go through |
+
+
 ## Findings so far
 
 ### The strict suite was 0% green, and the bug was in the test
@@ -52,6 +77,21 @@ The first version graded multiple choice with an LLM judge, and that judge was G
 Now every prompt states the output format (`End your reply with a final line in the form "Answer: (X)"`), and the regex checks exactly that, so the assertion traces back to the prompt (see the finding above). This also measures **format compliance**: a correct answer followed by extra chatter fails, because the final line isn't the answer. An app parsing the reply would break the same way.
 
 An LLM judge is still used in the strict suite for things a regex can't decide, such as whether the explanation is relevant. That judge comes from a different vendor than the model under test.
+
+### Errors are not failures: the provider is part of the system under test
+
+The first smoke runs (1 question, 36 calls) passed every test that got an answer, but Gemini returned **12 errors** both times, for two different reasons:
+
+1. **404**: `gemini-2.5-flash` had been retired for new users. A model ID is a dependency that can disappear, just like a pinned library version.
+2. **503**: the replacement, `gemini-3.8-flash`, was overloaded ("high demand"). promptfoo retried every call, so the run took almost 2 minutes instead of 17 seconds, and then gave up.
+
+Neither one is a bug in the prompts, the tests or the model's answers. promptfoo reports them as *errors*, not *failures*, so an outage doesn't show up as bad model quality. This is the same distinction as a flaky test caused by test infrastructure versus a real bug.
+
+In a CI pipeline this would need:
+- retries with backoff for 503 and 429, and lower concurrency for a busy vendor
+- the build failing on assertion failures, while provider errors are reported as a separate signal (or retried) rather than counted as a quality regression
+- optionally a fallback model, so one vendor's outage doesn't block the whole run
+- model IDs treated as dependencies: check them on a schedule, because vendors retire models
 
 ## Known limitations / next steps
 
