@@ -11,7 +11,10 @@ prompts:
 
 # AI judge: a different vendor than the model under test (gpt-5-mini),
 # so the model does not grade its own answers (self-preference bias)
-defaultTests:
+# The key is `defaultTest` (singular): promptfoo silently ignores `defaultTests`.
+# Until 13 Nov 2026 this block was ignored, so the judge was promptfoo's
+# default grader, not the model named here.
+defaultTest:
   options:
     provider: google:gemini-3.8-flash
 

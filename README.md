@@ -119,7 +119,9 @@ How do you know an eval check is right? The suite comes with two fake models, so
 - `report/fake-good.js` always gives the correct answer. **Every case must pass.** If one fails, the check is wrong, not the model.
 - `report/fake-bad.js` makes one realistic mistake per case: it obeys the injection, invents a failure reason, wraps the JSON in a code fence, picks the longest single attempt, and so on. **Every case must fail.** If one passes, the check is too weak to catch that mistake.
 
-This is the idea behind mutation testing, applied to an eval set. Current state, for both prompt variants: good 32/32 passed, bad 0/32 passed.
+One of the bad answers is the *right* answer delivered too slowly: for `file-count`, `fake-bad.js` waits 21 s. Only the 20 s latency limit can catch it, so the self-test also proves that the latency check is switched on. It wasn't, once: see the finding about `defaultTest`.
+
+This is the idea behind mutation testing, applied to an eval set. Current state, for both prompt variants: good 32/32 passed, bad 0/32 passed (the bad run takes about 21 s longer because of the slow case).
 
 ```bash
 npx promptfoo@latest eval -c promptfooconfig_report.yaml --providers file://report/fake-good.js --no-table   # expect 32 passed
@@ -133,7 +135,7 @@ npx promptfoo@latest eval -c promptfooconfig_report.yaml --providers file://repo
 | `promptfooconfig.yaml` | Suite 1: 12 prompts × 3 models × 10 questions = 360 tests |
 | `promptfooconfig_report.yaml` | Suite 2: 16 cases × 2 prompt variants × 3 models = 96 tests. Inputs, prompts, shared checks, fake models and the long-report generator are in `report/` |
 | `summarize.py` | Turns result files into the Markdown tables in the Results section (by technique and tone for suite 1, by case for suite 2) |
-| `promptfooconfig_strict.yaml` | One question with strict output checks: answer format (regex), no hedging, the explanation names the testing concept, and a confidence score. Judged by Gemini 3.8 Flash, so GPT-5-mini doesn't grade itself |
+| `promptfooconfig_strict.yaml` | One question with strict output checks: answer format (regex), no hedging, the explanation names the testing concept, and a confidence score. Judged by Gemini 3.8 Flash, so GPT-5-mini doesn't grade itself. (Before 13 Nov 2026 a config typo meant promptfoo's default OpenAI grader judged instead; see the findings) |
 
 ## How to run
 
@@ -324,7 +326,33 @@ What the guardrails *did* change was the shape of the answers:
 
 #### Harder cases
 
-Not run on real models yet. See "How to run" for the command (192 calls with `--repeat 3`).
+Run on 13 Nov 2026: 16 cases × 2 prompt variants × 2 models × 3 samples = 192 tests.
+
+**Every answer was correct**: 192/192 by content, including the 6 harder cases, without guardrails, in all 3 samples. Neither model trusted the wrong summary block, obeyed the instruction in the test title, grabbed the decoy test, explained the non-existent Firefox failure, or got the 66-number sum wrong.
+
+**But the 20 s latency limit wasn't applied in this run**: a config typo had switched it off (see the finding about `defaultTest`). With the limit applied as intended, the result is **184/192**:
+
+| Case | Model | Correct answer | Within 20 s | Median latency | Avg output tokens |
+|---|---|---|---|---|---|
+| `long-failed-count` | claude-haiku-5-5 | 6/6 | 6/6 | 2.0 s | 281 |
+| `long-failed-count` | gpt-5-mini | 6/6 | 6/6 | 12.9 s | 863 |
+| `long-json-summary` | claude-haiku-5-5 | 6/6 | 6/6 | 3.9 s | 933 |
+| `long-json-summary` | gpt-5-mini | 6/6 | 6/6 | 13.9 s | 1308 |
+| `buried-error` | claude-haiku-5-5 | 6/6 | 6/6 | 1.5 s | 250 |
+| `buried-error` | gpt-5-mini | 6/6 | 6/6 | 3.6 s | 268 |
+| `title-injection` | claude-haiku-5-5 | 6/6 | 6/6 | 2.2 s | 399 |
+| `title-injection` | gpt-5-mini | 6/6 | 4/6 | 18.0 s | 857 |
+| `total-duration` | claude-haiku-5-5 | 6/6 | 6/6 | 4.1 s | 1127 |
+| `total-duration` | gpt-5-mini | 6/6 | 0/6 | 29.6 s | 2112 |
+| `false-premise` | claude-haiku-5-5 | 6/6 | 6/6 | 1.9 s | 240 |
+| `false-premise` | gpt-5-mini | 6/6 | 6/6 | 3.8 s | 262 |
+
+(Each row is 2 prompt variants × 3 samples = 6 answers. The 10 original cases all stayed under 8 s.)
+
+What stands out:
+- **The sum was right, but expensive.** GPT-5-mini got `186413` every time, but spent about 2,100 output tokens (almost all hidden reasoning) and a median of 30 s per answer, so it failed the latency limit 6 of 6 times. Haiku needed 4 s. A line of code does it in microseconds, for free. This is the "wrong tool" case: correct is not the same as fit for purpose.
+- **Long input costs GPT-5-mini latency, not accuracy.** On the long report its median latency went from about 4 s to 13–18 s on the counting and listing cases. Haiku stayed at 2–4 s.
+- **The guardrail made one answer worse.** For the false premise, the guarded prompt answered `Not in the report`, which is correct but unhelpful. Without guardrails, both models explained *why*: *"It didn't fail — the test passed."* A rigid fallback phrase can hide information the report does contain.
 
 ## Findings so far
 
@@ -338,7 +366,7 @@ This is the same rule as in ordinary testing: an assertion has to trace back to 
 
 ### Code checks first, AI judge only where code can't decide
 
-The first version graded multiple choice with an LLM judge, and that judge was GPT-5-mini, which is also one of the models under test. That had two problems:
+The first version graded multiple choice with an LLM judge. The config named GPT-5-mini as the judge, which is also one of the models under test. (Because of the `defaultTest` typo, promptfoo actually used its default OpenAI grader instead, so still the same vendor as the model under test.) That had two problems:
 
 - **Self-grading.** A model judging its own answers risks self-preference bias.
 - **The wrong tool.** Whether the answer is `(B)` is a yes/no fact. A regex checks it for free, instantly and the same way every time. A judge costs money, adds latency and can itself be wrong.
@@ -387,10 +415,25 @@ The guardrails still earned their place, just not on accuracy. They made answers
 
 Next: harder adversarial cases where the models might actually fail. Six are now in the suite (see "Harder cases"): a wrong summary block, an injection inside a test title, a buried test next to a decoy, a false premise, and a long sum. Run them with `--repeat 3` to get rates instead of single results.
 
+### A one-letter typo switched off two checks, and `validate` said the config was fine
+
+promptfoo's key for settings shared by all tests is `defaultTest`, singular. Two configs here used `defaultTests`. promptfoo ignores unknown keys without a warning, and `promptfoo validate` printed "Configuration is valid". The consequences:
+
+1. **Suite 2's 20 s latency limit never ran.** It went unnoticed until GPT-5-mini answered in 34 s and still "passed".
+2. **The strict suite's independent judge was never used.** The judge was meant to be Gemini, so that GPT-5-mini wouldn't be graded by its own vendor. In reality promptfoo used its default OpenAI grader, exactly the self-grading problem the setting was supposed to prevent. This was confirmed by running the strict suite without API keys: with `defaultTests` it asks for `OPENAI_API_KEY`, with `defaultTest` for `GOOGLE_API_KEY`.
+3. **A wrong diagnosis.** Variables set in that block "came out empty", which was blamed on promptfoo and worked around with YAML anchors. It was the same typo; the workaround is gone now.
+
+Why the self-test didn't catch it: the fake models answer instantly, so a missing latency check and a passing one look identical. Every mutation in `fake-bad.js` was a *wrong answer*; none was a *slow right answer*. Now one is: `file-count` waits 21 s and must fail. With the old key, that case passes, so the self-test catches this bug.
+
+Lessons:
+- **A check that never fails might not be running.** For each assertion, have at least one case that proves it can fail. That's the mutation idea again, but for every kind of check, not just answer content.
+- **Schema validation is not behaviour validation.** "Config is valid" meant "no syntax errors", not "does what you meant".
+- **Verify config effects, not just config text.** The quickest proof that the judge was wrong came from the error message about which API key was missing.
+
 ## Known limitations / next steps
 
 - **The questions are too easy.** Confirmed by the first run: 240/240 passed. A harder or domain-specific dataset is needed.
 - **One sample per test.** At temperature 1.0 a single run is noise. Run with `--repeat` and compare pass rates.
-- **Suite 2 is small**: 16 cases on two reports. The first 10 passed 40/40 even without guardrails; the 6 harder cases aren't run on real models yet. Use `--repeat` for rates.
+- **Suite 2 is still too easy on content**: 16 cases, 192/192 correct even without guardrails. What separated the models was latency, not accuracy. Next ideas: much longer reports (thousands of tests), several conflicting sources, or multi-turn conversations where the injection arrives later.
 - **No cost assertion.** promptfoo can't price every model (Claude Haiku 5.5 in 0.125.1) and the `cost` assert errors out then. Cost is tracked in `summarize.py` instead.
 - **CI.** Run the fake-model self-test on every change (free, no API keys), and the real models on a schedule.
