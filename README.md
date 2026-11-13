@@ -10,18 +10,18 @@ Popular prompting tips say you should add an emotional stake, give the model an 
 
 | Part | What it is |
 |---|---|
-| Dataset | `questions.csv`: 25 multiple-choice questions about software-testing theory, each with one correct answer |
+| Dataset | `questions.csv`: 10 multiple-choice questions about software-testing theory, each with one correct answer |
 | Prompt techniques | baseline, emotional stimulus ("This is very important to my career!"), expert persona, zero-shot chain of thought ("Let's think step-by-step") |
 | System-message tones | neutral, academic, informal (4 techniques × 3 tones = 12 prompts, `prompt*.yaml`) |
 | Models under test | OpenAI GPT-5-mini, Google Gemini 2.0 Flash, Anthropic Claude Sonnet 4 |
-| Grading | an LLM judge (`llm-rubric`, GPT-5-mini) checks that the expected answer was chosen |
+| Grading | deterministic: every prompt asks the model to end with `Answer: (X)`, and a regex in `questions.csv` checks that final line. No AI judge needed |
 
 ## Configs
 
 | File | Purpose |
 |---|---|
-| `promptfooconfig.yaml` | Main experiment: 12 prompts × 3 models × 25 questions |
-| `promptfooconfig_strict.yaml` | One question with strict output checks: answer format (regex), no hedging, the explanation names the testing concept, and a confidence score |
+| `promptfooconfig.yaml` | Main experiment: 12 prompts × 3 models × 10 questions = 360 tests |
+| `promptfooconfig_strict.yaml` | One question with strict output checks: answer format (regex), no hedging, the explanation names the testing concept, and a confidence score. Judged by Gemini 2.5 Flash, so GPT-5-mini doesn't grade itself |
 | `promptfooconfig_conf.yaml` | Minimal config used to debug the confidence check on its own |
 
 ## How to run
@@ -43,10 +43,19 @@ None of the prompts asks the model for a confidence score. The assertion checked
 
 This is the same rule as in ordinary testing: an assertion has to trace back to a requirement. For LLM evals it's easy to break, because a rubric written in plain English *reads* like a reasonable expectation even when the prompt never states it.
 
+### Code checks first, AI judge only where code can't decide
+
+The first version graded multiple choice with an LLM judge, and that judge was GPT-5-mini, which is also one of the models under test. That had two problems:
+
+- **Self-grading.** A model judging its own answers risks self-preference bias.
+- **The wrong tool.** Whether the answer is `(B)` is a yes/no fact. A regex checks it for free, instantly and the same way every time. A judge costs money, adds latency and can itself be wrong.
+
+Now every prompt states the output format (`End your reply with a final line in the form "Answer: (X)"`), and the regex checks exactly that, so the assertion traces back to the prompt (see the finding above). This also measures **format compliance**: a correct answer followed by extra chatter fails, because the final line isn't the answer. An app parsing the reply would break the same way.
+
+An LLM judge is still used in the strict suite for things a regex can't decide, such as whether the explanation is relevant. That judge comes from a different vendor than the model under test.
+
 ## Known limitations / next steps
 
-- **Multiple choice doesn't need an LLM judge.** Whether the answer is `(B)` can be checked with a regex. That's free, fast and deterministic. The judge should be kept for things code can't check, like whether the explanation is correct.
-- **The model grades itself.** GPT-5-mini is both under test and the judge, which risks self-preference bias. Use a different judge model.
 - **The questions are too easy.** Textbook testing questions are likely to score near 100% for every model and prompt (a ceiling effect), so the experiment can't show differences.
 - **One sample per test.** At temperature 1.0 a single run is noise. Run with `--repeat` and compare pass rates.
 - **Coverage.** Add hallucination, prompt-injection, output-format (JSON), latency and cost checks, and run the suite in CI.

@@ -1,1 +1,1 @@
-[ { "role": "system", "content": "Respond in a formal and academic tone. Use complex sentence structures and advanced vocabulary" }, { "role": "user", "content": "Answer the following question. Let's think step-by-step: {{question}}" } ]
+[{"role": "system", "content": "Respond in a formal and academic tone. Use complex sentence structures and advanced vocabulary"}, {"role": "user", "content": "Answer the following question. Let's think step-by-step: {{question}}\n\nEnd your reply with a final line in the form \"Answer: (X)\", where X is the letter of your choice."}]
